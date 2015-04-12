@@ -29,6 +29,15 @@ def listdiff(current, previous):
 
 
 if __name__ == "__main__":
+    import argparse
+    parser = argparse.ArgumentParser()
+    parser.add_argument(
+        "--json",
+        action="store_true",
+        help="Output data in JSON format (default is YAML)"
+    )
+    args = parser.parse_args()
+
     current_top = get_environment_from_top_file()[SALT_ENVIRONMENT]
     previous_top = get_environment_from_last_commit_top_file()[SALT_ENVIRONMENT]
 
@@ -48,4 +57,8 @@ if __name__ == "__main__":
                  "unchanged": list(topdiff.unchanged()),
              }  # end output
 
-    print(yaml.dump(output, default_flow_style=False).replace('- ', '  - '))
+    if args.json:
+        import json
+        print(json.dumps(output, sort_keys=True, indent=4))
+    else:
+        print(yaml.dump(output, default_flow_style=False).replace('- ', '  - '))
