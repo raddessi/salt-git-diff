@@ -13,43 +13,19 @@ Default output format is YAML. You can get JSON instead:
 # Output
 YAML format:
 
-    added: []
-    changed:
-      - host1.example.com:
-        added:
-          - nginx
-        removed:
-          - apache
-    removed: []
-    unchanged:
-      - '*'
-      - host2.example.com
-      - host3.example.com
-      - '*.subdomain.example.com'
+    - '*'
+    - host2.example.com
+    - host3.example.com
+    - '*.subdomain.example.com'
 
 JSON format:
 
-    {
-        "added": [],
-        "changed": [
-            {
-                "host1.example.com": {
-                    "added": [
-                        "safekeep.server"
-                    ],
-                    "removed": [
-                        "safekeep.client"
-                    ]
-                }
-            }
-        ],
-        "removed": [],
-        "unchanged": [
-            "host2.example.com",
-            "host3.example.com",
-            "*.subdomain.example.com"
-        ]
-    }
+    [
+        "*",
+        "host2.example.com",
+        "host3.example.com",
+        "*.subdomain.example.com"
+    ]
     
 # Limitations
-* Only looks at top file difference
+* Skips any selector with ":" in it in top file, like "os:CentOS"
