@@ -62,9 +62,17 @@ if __name__ == "__main__":
     import argparse
     parser = argparse.ArgumentParser()
     parser.add_argument(
-        "--json",
-        action="store_true",
-        help="Output data in JSON format (default is YAML)"
+        "-o",
+        "--output",
+        choices=["yaml", "json", "text"],
+        default="yaml",
+        help="Output data format (default is yaml)"
+    )
+    parser.add_argument(
+        "--replace-asterisks",
+        metavar="REPLACEMENT",
+        dest="asterisk_replacement",
+        help="Replace all asterisks with provided string"
     )
     args = parser.parse_args()
 
@@ -82,8 +90,14 @@ if __name__ == "__main__":
     # Union operation to get rid of duplicates
     output = list(top_added_set | top_changed_set | top_state_changed_set)
 
-    if args.json:
+    if args.asterisk_replacement:
+        output = [o.replace('*', args.asterisk_replacement) for o in output]
+
+    if args.output == 'json':
         import json
         print(json.dumps(output, sort_keys=True, indent=4))
-    else:
+    elif args.output == 'text':
+        for line in output:
+            print(line)
+    elif args.output == 'yaml':
         print(yaml.dump(output, default_flow_style=False).replace('- ', '  - '))
