@@ -2,63 +2,102 @@
 import yaml
 import subprocess
 import os
-from dictdiffer import DictDiffer
+import re
 
 TOP_FILE_NAME = os.getenv("TOP_FILE_NAME", "top.sls")
 SALT_ENVIRONMENT = os.getenv("SALT_ENVIRONMENT", "base")
 
 
-def get_environment_from_last_commit_top_file():
+def changed_directories():
+    dirstat = subprocess.check_output(["git", "diff", "HEAD^..HEAD", "--dirstat=files"])
+    # Decode bytes to a string
+    dirstat = dirstat.decode('utf-8')
+    # Find non-whitespace between whitespace and a forward slash. Don't be greedy.
+    dirname = re.compile('\s(\S+?)/')
+    return dirname.findall(dirstat)
+
+
+def previous_commit_top_file():
     top_file_contents = subprocess.check_output(["git", "show", "HEAD^:%s" % TOP_FILE_NAME])
     return yaml.load(top_file_contents)
 
 
-def get_environment_from_top_file():
+def current_top_file():
     with open(TOP_FILE_NAME, 'r') as stream:
         return yaml.load(stream)
 
 
-def listdiff(current, previous):
-    current_set = set(current)
-    previous_set = set(previous)
-    diff = {
-               "added": list(current_set - previous_set),
-               "removed": list(previous_set - current_set),
-           }
-    return diff
+def added_dict_records(current_dict, past_dict):
+    current_key_set, past_key_set = [set(d.keys()) for d in (current_dict, past_dict)]
+    intersection = current_key_set.intersection(past_key_set)
+    return current_key_set - intersection
+
+
+def changed_dict_records(current_dict, past_dict):
+    current_key_set, past_key_set = [set(d.keys()) for d in (current_dict, past_dict)]
+    intersection = current_key_set.intersection(past_key_set)
+    return set(key for key in intersection if past_dict[key] != current_dict[key])
+
+
+def top_records_containing_states(top, match_states):
+    matching_records = []
+    for key, states in top.items():
+        # Skip grains matches
+        if ':' not in key:
+            match = False
+            for state in states:
+                # Salt uses dot for traversing directories.
+                # We're happy as long as first part matches.
+                if state.split('.')[0] in match_states:
+                    match = True
+            # end for state in states
+            if match:
+                matching_records.append(key)
+        # end if ':' not in key
+    # end for key, states in top
+    return matching_records
 
 
 if __name__ == "__main__":
     import argparse
     parser = argparse.ArgumentParser()
     parser.add_argument(
-        "--json",
-        action="store_true",
-        help="Output data in JSON format (default is YAML)"
+        "-o",
+        "--output",
+        choices=["yaml", "json", "text"],
+        default="yaml",
+        help="Output data format (default is yaml)"
+    )
+    parser.add_argument(
+        "--replace-asterisks",
+        metavar="REPLACEMENT",
+        dest="asterisk_replacement",
+        help="Replace all asterisks with provided string"
     )
     args = parser.parse_args()
 
-    current_top = get_environment_from_top_file()[SALT_ENVIRONMENT]
-    previous_top = get_environment_from_last_commit_top_file()[SALT_ENVIRONMENT]
+    current_top = current_top_file()[SALT_ENVIRONMENT]
+    previous_top = previous_commit_top_file()[SALT_ENVIRONMENT]
 
-    topdiff = DictDiffer(current_top, previous_top)
+    top_added_set = added_dict_records(current_top, previous_top)
+    top_changed_set = changed_dict_records(current_top, previous_top)
 
-    # For "changed" entries in top file, we go a level deeper.
-    changediff = []
-    for record in topdiff.changed():
-        current_record = current_top[record]
-        previous_record = previous_top[record]
-        changediff.append({record: listdiff(current_record, previous_record)})
+    # We assume that a top level directory affected by git commit
+    # has the same name as a salt state.
+    changed_states = changed_directories()
+    top_state_changed_set = set(top_records_containing_states(current_top, changed_states))
 
-    output = {
-                 "added": list(topdiff.added()),
-                 "removed": list(topdiff.removed()),
-                 "changed": changediff,
-                 "unchanged": list(topdiff.unchanged()),
-             }  # end output
+    # Union operation to get rid of duplicates
+    output = list(top_added_set | top_changed_set | top_state_changed_set)
 
-    if args.json:
+    if args.asterisk_replacement:
+        output = [o.replace('*', args.asterisk_replacement) for o in output]
+
+    if args.output == 'json':
         import json
         print(json.dumps(output, sort_keys=True, indent=4))
-    else:
+    elif args.output == 'text':
+        for line in output:
+            print(line)
+    elif args.output == 'yaml':
         print(yaml.dump(output, default_flow_style=False).replace('- ', '  - '))
