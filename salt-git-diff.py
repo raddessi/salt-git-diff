@@ -8,13 +8,17 @@ TOP_FILE_NAME = os.getenv("TOP_FILE_NAME", "top.sls")
 SALT_ENVIRONMENT = os.getenv("SALT_ENVIRONMENT", "base")
 
 
-def changed_directories():
-    dirstat = subprocess.check_output(["git", "diff", "HEAD^..HEAD", "--dirstat=files"])
+def git_changes():
+    gitdiff = subprocess.check_output(["git", "diff", "--name-only", "HEAD^..HEAD"])
     # Decode bytes to a string
-    dirstat = dirstat.decode('utf-8')
+    return gitdiff.decode('utf-8')
+
+
+def changed_states():
+    changes = git_changes()
     # Find non-whitespace between whitespace and a forward slash. Don't be greedy.
-    dirname = re.compile('\s(\S+?)/')
-    return dirname.findall(dirstat)
+    r = re.compile('\s(\S+?)(?:/|.sls)')
+    return r.findall(changes)
 
 
 def previous_commit_top_file():
@@ -84,8 +88,7 @@ if __name__ == "__main__":
 
     # We assume that a top level directory affected by git commit
     # has the same name as a salt state.
-    changed_states = changed_directories()
-    top_state_changed_set = set(top_records_containing_states(current_top, changed_states))
+    top_state_changed_set = set(top_records_containing_states(current_top, changed_states()))
 
     # Union operation to get rid of duplicates
     output = list(top_added_set | top_changed_set | top_state_changed_set)
