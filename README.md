@@ -8,7 +8,7 @@ Navigate to your salt states or pillars location and run:
 
 Default output format is YAML. You can get JSON instead:
 
-    docker run -i -v $(pwd):/mnt/git tomologic/salt-git-diff --json
+    docker run -i -v $(pwd):/mnt/git tomologic/salt-git-diff -o json
 
 # Output
 YAML format:
@@ -18,7 +18,7 @@ YAML format:
     - host3.example.com
     - '*.subdomain.example.com'
 
-JSON format:
+JSON format (-o json):
 
     [
         "*",
@@ -26,6 +26,22 @@ JSON format:
         "host3.example.com",
         "*.subdomain.example.com"
     ]
+
+Plain text format (-o text)
+
+    *
+    host2.example.com
+    host3.example.com
+    *.subdomain.example.com
+
+# Asterisk substitution
+
+    docker run -i -v $(pwd):/mnt/git tomologic/salt-git-diff -o text --replace-asterisks=something
+
+    something
+    host2.example.com
+    host3.example.com
+    something.subdomain.example.com
     
 # Limitations
 * Skips any selector with ":" in it in top file, like "os:CentOS"
