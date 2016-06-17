@@ -46,18 +46,15 @@ def changed_dict_records(current_dict, past_dict):
 def top_records_containing_states(top, match_states):
     matching_records = []
     for key, states in top.items():
-        # Skip grains matches
-        if ':' not in key:
-            match = False
-            for state in states:
-                # Salt uses dot for traversing directories.
-                # We're happy as long as first part matches.
-                if state.split('.')[0] in match_states:
-                    match = True
-            # end for state in states
-            if match:
-                matching_records.append(key)
-        # end if ':' not in key
+        match = False
+        for state in states:
+            # Salt uses dot for traversing directories.
+            # We're happy as long as first part matches.
+            if state.split('.')[0] in match_states:
+                match = True
+        # end for state in states
+        if match:
+            matching_records.append(key)
     # end for key, states in top
     return matching_records
 
@@ -91,7 +88,10 @@ if __name__ == "__main__":
     top_state_changed_set = set(top_records_containing_states(current_top, changed_states()))
 
     # Union operation to get rid of duplicates
-    output = list(top_added_set | top_changed_set | top_state_changed_set)
+    all_changes = list(top_added_set | top_changed_set | top_state_changed_set)
+
+    # Filter out grains matches, which are not hostnames
+    output = [x for x in output if ':' not in x]
 
     if args.asterisk_replacement:
         output = [o.replace('*', args.asterisk_replacement) for o in output]
