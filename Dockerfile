@@ -1,5 +1,8 @@
 FROM python:3-alpine
 
+# Python calls git commands as subprocesses
+RUN apk add --no-cache git
+
 COPY requirements.txt /root/
 RUN pip install --no-cache-dir -r /root/requirements.txt
 
