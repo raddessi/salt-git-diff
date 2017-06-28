@@ -1,4 +1,7 @@
-FROM python:3-onbuild
+FROM python:3-alpine
+
+COPY requirements.txt /root/
+RUN pip install --no-cache-dir -r /root/requirements.txt
 
 RUN mkdir -p /mnt/git
 
