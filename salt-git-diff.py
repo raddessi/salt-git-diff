@@ -94,7 +94,9 @@ def top_records_containing_states(top, match_states):
                     match = True
             # end for state in states
             if match:
-                matching_records.append(key)
+                # A top file match can be a comma separated list of hostnames
+                records = key.split(sep=',')
+                matching_records.extend(records)
     # end for key, states in top
     return matching_records
 
