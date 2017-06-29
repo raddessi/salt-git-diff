@@ -52,13 +52,25 @@ def current_top_file():
         return yaml.load(stream)
 
 
+def comma_split_records_in_set(nonsplit_set):
+    '''
+    Turn {'foo,bar', 'baz'} into {'foo', 'bar', 'baz'}
+    '''
+    split_set = set()
+    for record in nonsplit_set:
+        for item in record.split(sep=','):
+            split_set.add(item)
+    return split_set
+
+
 def added_dict_records(current_dict, past_dict):
     '''
     Return records which are in current_dict but not in past_dict
     '''
     current_key_set, past_key_set = [set(d.keys()) for d in (current_dict, past_dict)]
     intersection = current_key_set.intersection(past_key_set)
-    return current_key_set - intersection
+    added_dict_records = current_key_set - intersection
+    return comma_split_records_in_set(added_dict_records)
 
 
 def changed_dict_records(current_dict, past_dict):
@@ -68,7 +80,8 @@ def changed_dict_records(current_dict, past_dict):
     '''
     current_key_set, past_key_set = [set(d.keys()) for d in (current_dict, past_dict)]
     intersection = current_key_set.intersection(past_key_set)
-    return set(key for key in intersection if past_dict[key] != current_dict[key])
+    changed_dict_records = set(key for key in intersection if past_dict[key] != current_dict[key])
+    return comma_split_records_in_set(changed_dict_records)
 
 
 def top_records_containing_states(top, match_states):
