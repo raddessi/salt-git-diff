@@ -97,14 +97,16 @@ def top_records_containing_states(top, match_states):
     '''
     matching_records = []
     for key, states in top.items():
-        # Skip records like 'match: grain'
+        # Skip records like 'os:CentOS'
         if ':' not in key:
             match = False
             for state in states:
-                # Salt uses dot for traversing directories.
-                # We're happy as long as first part matches.
-                if state.split('.')[0] in match_states:
-                    match = True
+                # Skip states like 'match: grain'
+                if not isinstance(state, dict):
+                    # Salt uses dot for traversing directories.
+                    # We're happy as long as first part matches.
+                    if state.split('.')[0] in match_states:
+                        match = True
             # end for state in states
             if match:
                 # A top file match can be a comma separated list of hostnames
