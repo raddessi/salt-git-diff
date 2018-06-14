@@ -80,7 +80,7 @@ def changed_dict_records(current_dict, past_dict):
     '''
     current_key_set, past_key_set = [set(d.keys()) for d in (current_dict, past_dict)]
     intersection = current_key_set.intersection(past_key_set)
-    changed_dict_records = set(key for key in intersection if past_dict[key] != current_dict[key])
+    changed_dict_records = {key for key in intersection if past_dict[key] != current_dict[key]}
     return comma_split_records_in_set(changed_dict_records)
 
 
